@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Mapa de Rutas de Buses</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- CSS de Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- SweetAlert2 CSS (opcional, pero mejora el estilo en algunos navegadores) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        #sidebar {
+            width: 250px;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-right: 1px solid #ddd;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+        }
+
+        #sidebar h2 {
+            margin-top: 0;
+        }
+
+        #sidebar input,
+        #sidebar button {
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        #infoRuta {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #333;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        #map {
+            flex: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="sidebar">
+        <h2>Rutas de Buses</h2>
+
+        <!-- Buscador de direcciones -->
+        <input type="text" id="search" placeholder="Buscar dirección...">
+
+        <!-- Botones de control -->
+        <button onclick="mostrarRutas()">Mostrar Rutas</button>
+        <button onclick="reiniciarMapa()">Reiniciar</button>
+        <button id="btnInicio">Usar como inicio</button>
+        <button id="btnDestino">Usar como destino</button>
+
+        <!-- Información de la ruta -->
+        <div id="infoRuta">
+            <em>Busca una dirección y traza una ruta.</em>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- JS de Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- SweetAlert2 (modales bonitos) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Script principal -->
+    <script src="app.js"></script>
+
+</body>
+
+</html>
