@@ -1,91 +1,317 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-    <meta charset="UTF-8">
-    <title>Mapa de Rutas de Buses</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Move Route</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
 
-    <!-- CSS de Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    html {
+      scroll-behavior: smooth;
+    }
 
-    <!-- SweetAlert2 CSS (opcional, pero mejora el estilo en algunos navegadores) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    body {
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      display: flex;
+      flex-direction: column;
+      background-color: #ffffff;
+      height: 100vh;
+      padding-top: 70px;
+    }
 
-    <style>
-        body {
-            margin: 0;
-            display: flex;
-            height: 100vh;
-            font-family: Arial, sans-serif;
-        }
+    header {
+      background-color: #4e73df;
+      padding: 1rem 2rem;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
 
-        #sidebar {
-            width: 250px;
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-right: 1px solid #ddd;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-            overflow-y: auto;
-        }
+    nav a {
+      color: white;
+      margin-left: 1rem;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+    }
 
-        #sidebar h2 {
-            margin-top: 0;
-        }
+    nav a:hover {
+      background-color: #2e59d9;
+      transform: scale(1.05);
+    }
 
-        #sidebar input,
-        #sidebar button {
-            width: 100%;
-            margin: 10px 0;
-            padding: 10px;
-            font-size: 16px;
-        }
+    main {
+      display: flex;
+      flex: 1;
+    }
 
-        #infoRuta {
-            margin-top: 20px;
-            font-size: 14px;
-            color: #333;
-            background-color: #e9ecef;
-            padding: 10px;
-            border-radius: 8px;
-        }
+    #map {
+      flex-grow: 1;
+      height: 600px;
+    }
 
-        #map {
-            flex: 1;
-        }
-    </style>
+    section {
+      padding: 4rem 2rem;
+    }
+
+    section#inicio {
+      background-image: url('images/ciudad.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      position: relative;
+      text-align: left;
+    }
+
+    section#inicio::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0.7);
+      z-index: 0;
+    }
+
+    section#inicio > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .inicio-contenido {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .inicio-textos {
+      max-width: 600px;
+      padding-left: 3rem;
+    }
+
+    .inicio-texto {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #0a1f44;
+      margin-bottom: 0.5rem;
+    }
+
+    .inicio-subtexto {
+      font-size: 1.5rem;
+      font-weight: 400;
+      color: #0a1f44;
+      margin-bottom: 2rem;
+    }
+
+    .guacamaya {
+      width: 250px;
+      margin-right: 3rem;
+    }
+
+    .descargas {
+      text-align: left;
+      padding-left: 3rem;
+      margin-top: 1rem;
+    }
+
+    .descargas img {
+      width: 140px;
+      margin: 10px;
+    }
+
+    section#rutas, section#contacto {
+      background-color: #f8f9fc;
+    }
+
+    h2 {
+      color: #4e73df;
+    }
+
+    .redes img {
+      width: 40px;
+      margin-right: 10px;
+    }
+
+    .busqueda-direccion {
+      padding: 1rem;
+      text-align: center;
+      background: #f3f4f6;
+    }
+
+    .busqueda-direccion input {
+      padding: 0.5rem;
+      width: 60%;
+      max-width: 300px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-bottom: 0.5rem;
+    }
+
+    .busqueda-direccion button {
+      padding: 0.5rem 1rem;
+      background-color: #4e73df;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 0.2rem;
+    }
+
+    .icon-nav {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-nav i {
+      margin-right: 5px;
+    }
+
+    .logo-tenue {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      opacity: 0.1;
+      width: 100px;
+    }
+
+    section#noticias {
+      background-color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 300px;
+      text-align: center;
+    }
+
+    section#noticias h2 {
+      font-size: 2.5rem;
+      color: #4e73df;
+      margin-bottom: 1rem;
+    }
+
+    section#noticias p {
+      font-size: 1.5rem;
+      color: #888;
+    }
+  </style>
 </head>
-
 <body>
-    <div id="sidebar">
-        <h2>Rutas de Buses</h2>
+  <header>
+    <div><strong>Move Route</strong></div>
+    <nav>
+      <a href="#inicio" class="icon-nav"><i class="material-icons">home</i>Inicio</a>
+      <a href="#quienes" class="icon-nav"><i class="material-icons">info</i>¿Quiénes Somos?</a>
+      <a href="#rutas" class="icon-nav"><i class="material-icons">map</i>Rutas</a>
+      <a href="#noticias" class="icon-nav"><i class="material-icons">announcement</i>Noticias</a>
+      <a href="#contacto" class="icon-nav"><i class="material-icons">contact_mail</i>Contacto</a>
+    </nav>
+  </header>
 
-        <!-- Buscador de direcciones -->
-        <input type="text" id="search" placeholder="Buscar dirección...">
-
-        <!-- Botones de control -->
-        <button onclick="mostrarRutas()">Mostrar Rutas</button>
-        <button onclick="reiniciarMapa()">Reiniciar</button>
-        <button id="btnInicio">Usar como inicio</button>
-        <button id="btnDestino">Usar como destino</button>
-
-        <!-- Información de la ruta -->
-        <div id="infoRuta">
-            <em>Busca una dirección y traza una ruta.</em>
+  <section id="inicio">
+    <img src="images/logo.png" alt="Logo Move Route" class="logo-tenue">
+    <div class="inicio-contenido">
+      <div class="inicio-textos">
+        <h1 class="inicio-texto">MOVE ROUTE</h1>
+        <p class="inicio-subtexto">• Tu Viaje, tu ruta, tu tiempo •</p>
+        <div class="descargas">
+          <img src="images/google-play.png" alt="Google Play">
+          <img src="images/app-store.png" alt="App Store">
         </div>
+      </div>
+      <img src="images/guacamaya.jpg" alt="Guacamaya" class="guacamaya">
     </div>
+  </section>
 
-    <div id="map"></div>
+  <section id="quienes">
+    <h2>¿Quiénes Somos?</h2>
+    <p>En Move Route, creemos en la innovación para mejorar la movilidad urbana. Nuestro proyecto nació en Barranquilla con el objetivo de optimizar las rutas de buses, mejorar los horarios y ofrecer GPS en tiempo real para los usuarios del transporte público.</p>
+    <p>Somos un equipo apasionado por la tecnología y la eficiencia en el transporte. Buscamos facilitar la vida de miles de personas, reduciendo los tiempos de espera y mejorando la experiencia de viaje en la ciudad.</p>
+    <p>Actualmente, operamos a nivel local, pero nuestra visión es expandir Move Route a todo el país, llevando soluciones inteligentes a más ciudades y revolucionando la forma en que las personas se movilizan.</p>
+    <p>¡Únete a nosotros y sé parte del cambio en la movilidad urbana!</p>
+  </section>
 
-    <!-- JS de Leaflet -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <section id="rutas">
+    <h2>Rutas</h2>
+    <div class="busqueda-direccion">
+      <input type="text" id="direccionInput" placeholder="Escribe una dirección...">
+      <br>
+      <button onclick="buscarDireccionDesdeInput()">Buscar dirección</button>
+      <button onclick="usarDireccionComo('origen')">Usar como origen</button>
+      <button onclick="usarDireccionComo('destino')">Usar como destino</button>
+      <button onclick="trazarRuta()">Trazar Ruta</button>
+      <button onclick="guardarRutaFavorita()">Guardar Ruta Favorita</button>
+      <button onclick="reiniciarMapa()">Reiniciar Mapa</button>
+    </div>
+    <main>
+      <div id="map"></div>
+    </main>
+  </section>
 
-    <!-- SweetAlert2 (modales bonitos) -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <section id="noticias">
+    <h2>Noticias</h2>
+    <p>Coming soon...</p>
+  </section>
 
-    <!-- Script principal -->
-    <script src="app.js"></script>
+  <section id="contacto">
+    <h2>Contacto</h2>
+    <p>Contáctanos a través de nuestras redes sociales.</p>
+    <div class="redes">
+      <img src="images/instagram.png" alt="Instagram">
+      <img src="images/whatsapp.png" alt="WhatsApp">
+      <img src="images/tiktok.png" alt="TikTok">
+      <img src="images/youtube.png" alt="YouTube">
+    </div>
+  </section>
 
+  <script>
+    async function buscarDireccionDesdeInput() {
+      const direccion = document.getElementById('direccionInput').value;
+      if (!direccion) return;
+
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(direccion)}&bounded=1&viewbox=-74.95,11.1,-74.7,10.9`;
+
+      try {
+        const response = await fetch(url, { headers: { 'User-Agent': 'MoveRouteApp/1.0' } });
+        const data = await response.json();
+
+        if (data.length === 0) {
+          Swal.fire("No encontrado", "No se encontró la dirección. Intenta con otra.", "warning");
+          return;
+        }
+
+        const result = data[0];
+        const lat = parseFloat(result.lat);
+        const lon = parseFloat(result.lon);
+
+        L.marker([lat, lon]).addTo(map).bindPopup(result.display_name).openPopup();
+        map.setView([lat, lon], 16);
+
+        ultimaDireccionBuscada = { lat, lon, nombre: result.display_name };
+      } catch (error) {
+        Swal.fire("Error", "No se pudo buscar la dirección.", "error");
+        console.error(error);
+      }
+    }
+  </script>
+  <script src="scripts/mapa.js"></script>
 </body>
-
 </html>
