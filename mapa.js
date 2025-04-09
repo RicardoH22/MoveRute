@@ -78,41 +78,83 @@ function usarDireccionComo(tipo) {
 function trazarRuta() {
   if (!origen || !destino) return;
 
-  const origenLatLng = L.latLng(origen.lat, origen.lon);
-  const destinoLatLng = L.latLng(destino.lat, destino.lon);
+  const origenCoords = [origen.lon, origen.lat];
+  const destinoCoords = [destino.lon, destino.lat];
 
-  if (!BARRANQUILLA_BOUNDS.contains(origenLatLng) || !BARRANQUILLA_BOUNDS.contains(destinoLatLng)) {
-    Swal.fire("Ruta fuera de Barranquilla", "Tanto el origen como el destino deben estar en Barranquilla.", "error");
-    return;
-  }
+  const apiKey = '5b3ce3597851110001cf624867716585d67845408bf092bfca2b4269';
+  const url = 'https://api.openrouteservice.org/v2/directions/driving-car/geojson';
 
-  // Eliminar ruta anterior si existe
-  if (window.rutaPolyline) map.removeLayer(window.rutaPolyline);
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': apiKey,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      coordinates: [origenCoords, destinoCoords],
+      alternative_routes: {
+        target_count: 3,
+        share_factor: 0.5,
+        weight_factor: 1.6
+      }
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (window.rutasAlternativas) {
+      window.rutasAlternativas.forEach(r => map.removeLayer(r));
+    }
+    window.rutasAlternativas = [];
 
-  const router = L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' });
-  router.route([
-    origenLatLng,
-    destinoLatLng
-  ], (err, rutas) => {
-    if (err || rutas.length === 0) {
-      Swal.fire("Error al trazar ruta", "No se pudo obtener la ruta.", "error");
+    const colores = ['blue', 'green', 'orange'];
+    let resumenRutas = [];
+
+    if (!data.features || data.features.length === 0) {
+      Swal.fire("Sin rutas", "No se encontraron rutas alternativas.", "info");
       return;
     }
 
-    const coordenadas = rutas[0].coordinates;
-    let rutaCompleta = [];
+    data.features.forEach((ruta, i) => {
+      const color = colores[i % colores.length];
+      const distancia = ruta.properties.summary.distance; // en metros
+      const duracion = ruta.properties.summary.duration; // en segundos
 
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i < coordenadas.length) {
-        rutaCompleta.push([coordenadas[i].lat, coordenadas[i].lng]);
-        if (window.rutaPolyline) map.removeLayer(window.rutaPolyline);
-        window.rutaPolyline = L.polyline(rutaCompleta, { color: 'blue', weight: 5 }).addTo(map);
-        i++;
-      } else {
-        clearInterval(interval);
-      }
-    }, 30);
+      const linea = L.geoJSON(ruta, {
+        style: { color, weight: 5 }
+      }).addTo(map);
+
+      window.rutasAlternativas.push(linea);
+
+      resumenRutas.push({
+        numero: i + 1,
+        distancia,
+        duracion,
+        color
+      });
+    });
+
+    resumenRutas.sort((a, b) => a.distancia - b.distancia);
+    const masCorta = resumenRutas[0];
+    const masLarga = resumenRutas[resumenRutas.length - 1];
+
+    let mensaje = '<b>Resumen de rutas encontradas:</b><br><ul>';
+    resumenRutas.forEach(r => {
+      const minutos = Math.floor(r.duracion / 60);
+      const segundos = Math.floor(r.duracion % 60);
+      mensaje += `<li style="color:${r.color};">Ruta ${r.numero}: ${(r.distancia / 1000).toFixed(2)} km, ${minutos} min ${segundos} seg</li>`;
+    });
+    mensaje += '</ul>';
+    mensaje += `<b style="color:green;">✔ Más corta: Ruta ${masCorta.numero}</b><br>`;
+    mensaje += `<b style="color:red;">✖ Más larga: Ruta ${masLarga.numero}</b>`;
+
+    Swal.fire({
+      title: 'Comparativa de rutas',
+      html: mensaje
+    });
+  })
+  .catch(err => {
+    console.error(err);
+    Swal.fire("Error", "No se pudieron obtener las rutas alternativas.", "error");
   });
 }
 
@@ -135,6 +177,7 @@ function guardarRutaFavorita() {
 
 function actualizarListaFavoritas() {
   const lista = document.getElementById('listaFavoritas');
+  if (!lista) return;
   lista.innerHTML = '';
   rutasFavoritas.forEach((ruta, index) => {
     const div = document.createElement('div');
@@ -170,4 +213,25 @@ function usarRutaFavorita(index) {
 function eliminarRutaFavorita(index) {
   rutasFavoritas.splice(index, 1);
   actualizarListaFavoritas();
+}
+
+function reiniciarMapa() {
+  // Quitar marcadores si existen
+  if (origenMarker) map.removeLayer(origenMarker);
+  if (destinoMarker) map.removeLayer(destinoMarker);
+  origenMarker = null;
+  destinoMarker = null;
+  origen = null;
+  destino = null;
+
+  // Quitar rutas si existen
+  if (window.rutasAlternativas) {
+    window.rutasAlternativas.forEach(r => map.removeLayer(r));
+    window.rutasAlternativas = [];
+  }
+
+  // Centrar el mapa nuevamente
+  map.setView([10.96854, -74.78132], 13);
+
+  Swal.fire("Mapa reiniciado", "Se eliminó la ruta y los marcadores.", "success");
 }
